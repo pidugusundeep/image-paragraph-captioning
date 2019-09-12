@@ -33,7 +33,7 @@ class DataLoader(data.Dataset):
         self.opt = opt
         self.batch_size = self.opt.batch_size
         self.seq_per_img = opt.seq_per_img
-        
+
         # feature related options
         self.use_att = getattr(opt, 'use_att', True)
         self.use_box = getattr(opt, 'use_box', 0)
@@ -46,7 +46,7 @@ class DataLoader(data.Dataset):
         self.ix_to_word = self.info['ix_to_word']
         self.vocab_size = len(self.ix_to_word)
         print('vocab size is ', self.vocab_size)
-        
+
         # open the hdf5 file
         print('DataLoader loading h5 file: ', opt.input_fc_dir, opt.input_att_dir, opt.input_box_dir, opt.input_label_h5)
         self.h5_label_file = h5py.File(self.opt.input_label_h5, 'r', driver='core')
@@ -84,7 +84,7 @@ class DataLoader(data.Dataset):
         print('assigned %d images to split test' %len(self.split_ix['test']))
 
         self.iterators = {'train': 0, 'val': 0, 'test': 0}
-        
+
         self._prefetch_process = {} # The three prefetch process
         for split in self.iterators.keys():
             self._prefetch_process[split] = BlobFetcher(split, self, split=='train')
@@ -135,7 +135,7 @@ class DataLoader(data.Dataset):
                 ix, tmp_wrapped = self._prefetch_process[split].get()
             fc_batch.append(tmp_fc)
             att_batch.append(tmp_att)
-            
+
             label_batch[i * seq_per_img : (i + 1) * seq_per_img, 1 : self.seq_length + 1] = self.get_captions(ix, seq_per_img)
 
             if tmp_wrapped:
@@ -143,7 +143,7 @@ class DataLoader(data.Dataset):
 
             # Used for reward evaluation
             gts.append(self.h5_label_file['labels'][self.label_start_ix[ix] - 1: self.label_end_ix[ix]])
-        
+
             # record associated info as well
             info_dict = {}
             info_dict['ix'] = ix
@@ -273,7 +273,7 @@ class BlobFetcher():
         self.dataloader.iterators[self.split] = ri_next
 
         return ix, wrapped
-    
+
     def get(self):
         if not hasattr(self, 'split_loader'):
             self.reset()
@@ -282,7 +282,5 @@ class BlobFetcher():
         tmp = self.split_loader.next()
         if wrapped:
             self.reset()
-
         assert tmp[2] == ix, "ix not equal"
-
-        return tmp + [wrapped]
+        return list(tmp) + [wrapped]

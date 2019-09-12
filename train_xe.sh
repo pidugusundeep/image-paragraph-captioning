@@ -1,4 +1,4 @@
-python train.py \
+python2 train.py \
     --batch_size 10 \
     --input_att_dir 'data/parabu_att' \
     --input_fc_dir 'data/parabu_fc' \

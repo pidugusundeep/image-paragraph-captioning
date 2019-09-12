@@ -64,7 +64,7 @@ def train(opt):
         best_val_score = infos.get('best_val_score', None)
 
     # Create model
-    model = models.setup(opt).cuda()
+    model = models.setup(opt)
     dp_model = torch.nn.DataParallel(model)
     dp_model.train()
 
@@ -109,7 +109,7 @@ def train(opt):
                 sc_flag = False
 
             update_lr_flag = False
-                
+
         # Load data from train split (0)
         start = time.time()
         data = loader.get_batch('train')
@@ -117,11 +117,11 @@ def train(opt):
         start = time.time()
 
         # Unpack data
-        torch.cuda.synchronize()
+        # torch.cuda.synchronize()
         tmp = [data['fc_feats'], data['att_feats'], data['labels'], data['masks'], data['att_masks']]
-        tmp = [_ if _ is None else torch.from_numpy(_).cuda() for _ in tmp]
+        tmp = [_ if _ is None else torch.from_numpy(_) for _ in tmp]
         fc_feats, att_feats, labels, masks, att_masks = tmp
-        
+
         # Forward pass and loss
         optimizer.zero_grad()
         if not sc_flag:
@@ -129,16 +129,16 @@ def train(opt):
         else:
             gen_result, sample_logprobs = dp_model(fc_feats, att_feats, att_masks, opt={'sample_max':0}, mode='sample')
             reward = get_self_critical_reward(dp_model, fc_feats, att_feats, att_masks, data, gen_result, opt)
-            loss = rl_crit(sample_logprobs, gen_result.data, torch.from_numpy(reward).float().cuda())
+            loss = rl_crit(sample_logprobs, gen_result.data, torch.from_numpy(reward).float())
 
         # Backward pass
         loss.backward()
         utils.clip_gradient(optimizer, opt.grad_clip)
         optimizer.step()
         train_loss = loss.item()
-        torch.cuda.synchronize()
+        # torch.cuda.synchronize()
 
-        # Print 
+        # Print
         total_time = time.time() - start
         if iteration % opt.print_freq == 1:
             print('Read data:', time.time() - start)
@@ -166,7 +166,7 @@ def train(opt):
             lr_history[iteration] = opt.current_lr
             ss_prob_history[iteration] = model.ss_prob
 
-        # Validate and save model 
+        # Validate and save model
         if (iteration % opt.save_checkpoint_every == 0):
 
             # Evaluate model
@@ -188,7 +188,7 @@ def train(opt):
             else:
                 current_score = - val_loss
 
-            # Save model in checkpoint path 
+            # Save model in checkpoint path
             best_flag = False
             if best_val_score is None or current_score > best_val_score:
                 best_val_score = current_score
